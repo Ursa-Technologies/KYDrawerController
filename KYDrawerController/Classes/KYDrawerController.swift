@@ -63,6 +63,7 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
     private var _panStartLocation = CGPoint.zero
     
     private var _panDelta: CGFloat = 0
+    private var _panYDelta: CGFloat = 0
     
     lazy private var _containerView: UIView = {
         let view = UIView(frame: self.view.frame)
@@ -391,35 +392,36 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
         if sender.state == .began {
             _panStartLocation = sender.location(in: view)
         }
-        
+
         let delta           = CGFloat(sender.location(in: view).x - _panStartLocation.x)
+        let yDelta          = CGFloat(sender.location(in: view).y - _panStartLocation.y)
         let constant        : CGFloat
         let backGroundAlpha : CGFloat
         let drawerState     : DrawerState
-        
+
         switch drawerDirection {
         case .left:
-            drawerState     = _panDelta <= 0 ? .closed : .opened
+            drawerState     = _panDelta < 0 && abs(_panDelta) > abs(_panYDelta) ? .closed : .opened
             constant        = min(_drawerConstraint.constant + delta, drawerWidth)
             backGroundAlpha = min(
                 containerViewMaxAlpha,
                 containerViewMaxAlpha*(abs(constant)/drawerWidth)
             )
         case .right:
-            drawerState     = _panDelta >= 0 ? .closed : .opened
+            drawerState     = _panDelta > 0 && abs(_panDelta) > abs(_panYDelta) ? .closed : .opened
             constant        = max(_drawerConstraint.constant + delta, -drawerWidth)
             backGroundAlpha = min(
                 containerViewMaxAlpha,
                 containerViewMaxAlpha*(abs(constant)/drawerWidth)
             )
         }
-        
+
         _drawerConstraint.constant = constant
         _containerView.backgroundColor = UIColor(
             white: 0,
             alpha: backGroundAlpha
         )
-        
+
         switch sender.state {
         case .changed:
             let isAppearing = drawerState != .opened
@@ -431,6 +433,7 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
 
             _panStartLocation = sender.location(in: view)
             _panDelta         = delta
+            _panYDelta        = yDelta
         case .ended, .cancelled:
             setDrawerState(drawerState, animated: true)
         default:
